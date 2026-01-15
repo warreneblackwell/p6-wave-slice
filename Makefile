@@ -1,12 +1,24 @@
 BINARY_NAME=wavslice
 DIST_DIR=dist
 
-.PHONY: all clean test darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64 checksums
+.PHONY: all build test cover clean darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64 checksums
 
-all: clean darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64 checksums
+# Build for current platform
+build:
+	go build -o $(BINARY_NAME) main.go
 
+# Run tests
 test:
 	go test -v ./...
+
+# Run tests with coverage report
+cover:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+	@echo "\nTo view HTML report: go tool cover -html=coverage.out"
+
+# Build all platforms
+all: clean darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64 checksums
 
 clean:
 	@rm -rf $(DIST_DIR)

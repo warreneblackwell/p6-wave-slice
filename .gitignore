@@ -1,2 +1,21 @@
-output
+# Build output
+wavslice
+wavslice.exe
+
+# Test artifacts
+coverage.out
 *.out
+
+# Output directory (default for examples)
+output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/

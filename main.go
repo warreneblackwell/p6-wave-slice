@@ -16,10 +16,14 @@ import (
 
 // WAV file constants
 const (
-	MaxTotalSamples  = 260000  // Maximum total sample frames (based on classic sampler limits)
-	MaxInputDataSize = 1 << 30 // 1 GiB safety cap for input data
+	// MaxTotalSamples is the maximum sample frames based on Roland P-6 memory limits (~260k frames).
+	MaxTotalSamples = 260000
+
+	// MaxInputDataSize is a safety cap (1 GiB) to prevent loading excessively large files.
+	MaxInputDataSize = 1 << 30
 )
 
+// WAVEFORMATEXTENSIBLE subformat GUIDs for identifying PCM vs IEEE Float data.
 var (
 	subFormatPCM   = [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71}
 	subFormatFloat = [16]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71}
@@ -104,11 +108,16 @@ func main() {
 	samplesPerSlice := maxSamples / *sliceCount
 	sliceDurationMs := float64(samplesPerSlice) / float64(*sampleRate) * 1000.0
 
+	channelMode := "Mono"
+	if *stereo {
+		channelMode = "Stereo"
+	}
+
 	fmt.Println("=== WAV Sample Slicer ===")
 	fmt.Printf("Working Directory: %s\n", *workDir)
 	fmt.Printf("Pattern: %s\n", *pattern)
 	fmt.Printf("Output Sample Rate: %d Hz\n", *sampleRate)
-	fmt.Printf("Output Channels: %s\n", map[bool]string{true: "Stereo", false: "Mono"}[*stereo])
+	fmt.Printf("Output Channels: %s\n", channelMode)
 	fmt.Printf("Slice Count: %d\n", *sliceCount)
 	fmt.Printf("Samples per Slice: %d\n", samplesPerSlice)
 	fmt.Printf("Slice Duration: %.2f ms\n", sliceDurationMs)
