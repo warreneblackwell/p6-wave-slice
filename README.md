@@ -1,5 +1,9 @@
 # p6-wave-slice
 
+<p align="center">
+  <img src="p6.jpeg" alt="Roland P-6 Creative Sampler" width="500">
+</p>
+
 A small, focused command-line utility for turning collections of WAV samples into evenly-sliced, P‑6‑ready files. It targets the [Roland P-6 Creative Sampler](https://www.roland.com/global/products/p-6/) **Chop** workflow, but works for any sampler that expects equal-length slices in a single WAV.
 
 ## Background
@@ -89,7 +93,7 @@ Compare the output to the corresponding entry in dist/SHA256SUMS.
 ## Usage
 
 ```bash
-./wavslice -dir <directory> -pattern <search> -rate <hz> -slices <n> -output <dir> [-stereo]
+./wavslice -dir <directory> -pattern <search> -rate <hz> -slices <n> -output <dir> [-stereo] [-normalize]
 ```
 
 ### Arguments
@@ -102,6 +106,7 @@ Compare the output to the corresponding entry in dist/SHA256SUMS.
 | `-slices` | Number of slices per output file (1-64) | `32` |
 | `-output` | Output directory for combined WAV files | `.` |
 | `-stereo` | Output stereo (default is mono) | `false` |
+| `-normalize` | Normalize volume before saving combined output | `false` |
 
 ### Examples
 
@@ -128,7 +133,7 @@ For example: `kick_32slices_batch001.wav`, `kick_32slices_batch002.wav`, etc.
 
 ## Slice duration reference
 
-Based on the SP-16's ~260,000 sample frame limit:
+Based on the P-6's ~260,000 sample frame limit:
 
 | Sample Rate | Channels | Max Duration | 32 Slices | 64 Slices |
 |-------------|----------|--------------|-----------|-----------|
@@ -152,4 +157,4 @@ Based on the SP-16's ~260,000 sample frame limit:
 
 ## License
 
-MIT
+Unlicense (public domain; no warranty)

@@ -72,6 +72,7 @@ func main() {
 	sampleRate := flag.Int("rate", 44100, "Output sample rate in Hz (e.g., 44100, 22050, 14700, 11025)")
 	stereo := flag.Bool("stereo", false, "Output stereo (default is mono)")
 	sliceCount := flag.Int("slices", 32, "Number of slices per output file (1-64)")
+	normalize := flag.Bool("normalize", false, "Normalize volume before saving combined output")
 	outputDir := flag.String("output", ".", "Output directory for combined WAV files")
 	flag.Parse()
 
@@ -156,7 +157,7 @@ func main() {
 	}
 
 	// Process files in batches
-	err = processFiles(files, *sampleRate, numChannels, *sliceCount, samplesPerSlice, *pattern, *outputDir)
+	err = processFiles(files, *sampleRate, numChannels, *sliceCount, samplesPerSlice, *pattern, *outputDir, *normalize)
 	if err != nil {
 		fmt.Printf("Error processing files: %v\n", err)
 		os.Exit(1)
@@ -304,12 +305,17 @@ func readWavHeader(r io.ReadSeeker) (WavHeader, uint32, error) {
 					return header, 0, err
 				}
 				if header.AudioFormat == 0xFFFE {
+					// Extensible format extension layout (after basic 16-byte fmt):
+					// extra[0:2]  = cbSize (extension size, typically 22)
+					// extra[2:4]  = wValidBitsPerSample
+					// extra[4:8]  = dwChannelMask
+					// extra[8:24] = SubFormat GUID
 					if len(extra) < 24 {
 						return header, 0, fmt.Errorf("invalid extensible fmt chunk size")
 					}
-					header.ExtValidBits = binary.LittleEndian.Uint16(extra[0:2])
-					header.ExtChannelMask = binary.LittleEndian.Uint32(extra[2:6])
-					copy(header.ExtSubFormat[:], extra[6:22])
+					header.ExtValidBits = binary.LittleEndian.Uint16(extra[2:4])
+					header.ExtChannelMask = binary.LittleEndian.Uint32(extra[4:8])
+					copy(header.ExtSubFormat[:], extra[8:24])
 				}
 			}
 			fmtFound = true
@@ -408,7 +414,7 @@ func formatSize(bytes int64) string {
 }
 
 // processFiles processes all files in batches
-func processFiles(files []FileInfo, targetRate, numChannels, sliceCount, samplesPerSlice int, pattern, outputDir string) error {
+func processFiles(files []FileInfo, targetRate, numChannels, sliceCount, samplesPerSlice int, pattern, outputDir string, normalize bool) error {
 	// Create temp directory
 	tempDir, err := os.MkdirTemp("", "wavslice-")
 	if err != nil {
@@ -431,7 +437,7 @@ func processFiles(files []FileInfo, targetRate, numChannels, sliceCount, samples
 
 		// Process batch
 		outputFile := filepath.Join(outputDir, fmt.Sprintf("%s_%dslices_batch%03d.wav", sanitizeFilename(pattern), sliceCount, batchNum))
-		err := processBatch(batchFiles, targetRate, numChannels, samplesPerSlice, tempDir, outputFile)
+		err := processBatch(batchFiles, targetRate, numChannels, samplesPerSlice, tempDir, outputFile, normalize)
 		if err != nil {
 			return fmt.Errorf("failed to process batch %d: %v", batchNum, err)
 		}
@@ -443,7 +449,7 @@ func processFiles(files []FileInfo, targetRate, numChannels, sliceCount, samples
 }
 
 // processBatch processes a single batch of files
-func processBatch(files []FileInfo, targetRate, numChannels, samplesPerSlice int, tempDir, outputFile string) error {
+func processBatch(files []FileInfo, targetRate, numChannels, samplesPerSlice int, tempDir, outputFile string, normalize bool) error {
 	var processedSamples [][][]float64 // [file][channel][sample]
 
 	for idx, f := range files {
@@ -483,6 +489,10 @@ func processBatch(files []FileInfo, targetRate, numChannels, samplesPerSlice int
 
 	// Concatenate all processed samples
 	concatenated := concatenateSamples(processedSamples, numChannels)
+
+	if normalize {
+		concatenated = normalizeSamples(concatenated)
+	}
 
 	// Write output file
 	return writeWavFile(outputFile, concatenated, targetRate, numChannels)
@@ -799,6 +809,36 @@ func concatenateSamples(allSamples [][][]float64, numChannels int) [][]float64 {
 	}
 
 	return result
+}
+
+// normalizeSamples scales audio so peak amplitude reaches 1.0
+func normalizeSamples(samples [][]float64) [][]float64 {
+	if len(samples) == 0 || len(samples[0]) == 0 {
+		return samples
+	}
+
+	peak := 0.0
+	for ch := range samples {
+		for i := range samples[ch] {
+			v := math.Abs(samples[ch][i])
+			if v > peak {
+				peak = v
+			}
+		}
+	}
+
+	if peak == 0 {
+		return samples
+	}
+
+	scale := 1.0 / peak
+	for ch := range samples {
+		for i := range samples[ch] {
+			samples[ch][i] *= scale
+		}
+	}
+
+	return samples
 }
 
 func writeBytes(w io.Writer, b []byte) error {

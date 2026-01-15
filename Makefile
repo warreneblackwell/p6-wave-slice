@@ -1,9 +1,12 @@
 BINARY_NAME=wavslice
 DIST_DIR=dist
 
-.PHONY: all clean darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64 checksums
+.PHONY: all clean test darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64 checksums
 
 all: clean darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64 checksums
+
+test:
+	go test -v ./...
 
 clean:
 	@rm -rf $(DIST_DIR)
