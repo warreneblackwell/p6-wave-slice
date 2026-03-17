@@ -8,6 +8,8 @@ A small, focused command-line utility for turning collections of WAV samples int
 
 ## Background
 
+https://www.warrenblackwell.com/p6-wave-slice/
+
 The Roland P-6 has a **Chop** feature in Sample Edit (Voice) mode that splits a sample into equal parts and assigns each slice to note numbers from C4 to D#9 (up to 64 slices). This is great for quickly auditioning and playing multiple samples from a single voice slot.
 
 However, preparing samples for this workflow manually is tedious:
